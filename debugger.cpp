@@ -102,7 +102,9 @@ void Debugger::run()
       }
 
       // free copy of value
-      ram_free_value(value);
+      if (value != NULL) {
+        ram_free_value(value);
+      }
     }
     else if (cmd == "r") { // r: runs the program
       if (state == "Completed") { // program already ran
@@ -445,6 +447,38 @@ void Debugger::run()
     else if (cmd != "q") { // command does not exist
       cout << "unknown command" << endl;
     }
+  }
+  
+  if (prev != nullptr) {
+    // fix program
+    if (prev->stmt_type == STMT_ASSIGNMENT) {
+      prev->types.assignment->next_stmt = cur;
+    }
+    else if (prev->stmt_type == STMT_FUNCTION_CALL) {
+      prev->types.function_call->next_stmt = cur;
+    }
+    else if (prev->stmt_type == STMT_IF_THEN_ELSE) {
+      if (prev->types.if_then_else->condition) {
+        prev->types.if_then_else->true_path = cur;
+      }
+      else {
+        prev->types.if_then_else->false_path = cur;
+      }
+    }
+    else if (prev->stmt_type == STMT_WHILE_LOOP) {
+      if (prev->types.while_loop->condition) {
+        prev->types.while_loop->loop_body = cur;
+      }
+      else {
+        prev->types.while_loop->next_stmt = cur;
+      }
+    }
+    else if (prev->stmt_type == STMT_PASS) {
+      prev->types.pass->next_stmt = cur;
+    }
+    
+    cur = Program;
+    prev = nullptr;
   }
 
   // destroy ram
